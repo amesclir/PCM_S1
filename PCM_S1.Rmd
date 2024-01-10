@@ -1,0 +1,270 @@
+---
+title: "S1.IndependentContrast"
+author: "Marcial Escudero"
+date: "2024-01-10"
+output:
+  pdf_document: default
+  html_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+El campo moderno de los métodos filogneéticos comparativos nació con el método de contrastes independientes (Indepependent Contrast), gracias a un artículo revolucionario publicado a mediados de la década de 1980 por Joseph Felsenstein (1985). En este artículo, del naturalista estadounidense, titulado “Phylogenies and the Comparative Method, Felsenstein (1985)" se cambió de forma fundamental e irreversiblemente la forma en que el campo de la biología comparada veía colectivamente el análisis de los datos de las especies. Lo hizo en gran parte ilustrando por qué los puntos de datos obtenidos de especies relacionadas entre sí por una filogenia no podían ni debían ser tratados como independientes desde el punto de vista del análisis estadístico tradicional.
+En particular, Felsenstein (1985) mostró el peor escenario posible para ilustrar cómo la falta de independencia filogenética de las especies podría llevar a un enorme exceso de confianza en la inferencia de una correlación evolutiva entre rasgos, si esta correlación se estimara sin tomar adecuadamente en consideración la filogenia. 
+El siguiente código ilustra el denominado como "peor escenario posible".
+
+```{r}
+## load packages
+library(phytools)
+## read in tree
+tree<-read.tree(text="((A,B,C,D,E,F,G,H,I,J,K,L,M),(N,O,P,Q,R,S,T,U,V,W,X,Y,Z));")
+## set branch lengths on the tree
+tree<-compute.brlen(tree,power=1.8)
+## simulate data, independently for x & y
+x<-fastBM(tree)
+y<-fastBM(tree)
+## plot the results with clades A & B labeled
+## split plotting area
+par(mfrow=c(1,2))
+## graph tree
+plotTree(tree,type="cladogram",ftype="off",mar=c(5.1,4.1,3.1,2.1),color="darkgray",xlim=c(0,1.3),ylim=c(1,Ntip(tree)))
+## add points at the tips of the tree to match those
+## on our scatterplot
+points(rep(1,13),1:13,pch=21,bg="lightgray",cex=1.2)
+points(rep(1,13),14:26,pch=22,bg="black",cex=1.2)
+## add clade labels to the tree
+cladelabels(tree,"A",node=28,offset=2)cladelabels(tree,"B",node=29,offset=2)
+mtext("(a)",line=1,adj=0,cex=1.5)
+## create scatterplot of x & y
+par(mar=c(5.1,4.1,3.1,2.1))
+plot(x,y,bty="n",las=1)
+points(x[1:13],y[1:13],pch=21,bg="lightgray",cex=1.2)
+points(x[14:26],y[14:26],pch=22,bg="black",cex=1.2)
+mtext("(b)",line=1,adj=0,cex=1.5)
+
+```
+
+Aquí (siguiendo a Felsenstein 1985), lo que vemos son dos clados de igual tamaño (A y B), cada uno de los cuales consta de taxones estrechamente relacionados entre sí pero separados por una gran distancia de la raíz. Cuando simulamos datos de forma independiente para x e y, a primera vista, estos datos parecen estar correlacionados. Sin embargo, una inspección más cercana revela que la aparente correlación surge enteramente de una divergencia aleatoria tanto en x como en y a lo largo de las largas ramas que separan las dos clases.
+Los valores dentro de cada clado no muestran evidencia de la correlación que uno podría esperar ver si x e y tendieran consistentemente a coevolucionar a lo largo del tiempo evolutivo. Antes de la contribución fundamental de Felsenstein (1985), no habría sido raro interpretar una correlación simple entre dos variables como evidencia de que habían coevolucionado. Lo que el artículo de Felsenstein sirvió para ilustrar fue que tal patrón puede surgir fácilmente en los datos filogenéticos incluso en ausencia de una relación evolutiva genuina entre los rasgos. Sin embargo, el artículo de Felsenstein (1985) fue mucho más que una crítica del paradigma existente. También presentó una solución para el análisis de correlación o regresión de datos de especies. Este fue un tipo específico de transformación de datos que se conoce como contrastes filogenéticamente independientes o PIC. Este método proporciona una manera de probar las correlaciones evolutivas entre personajes, como ilustraremos
+
+El principio detrás del método de Felsenstein es notablemente elegante e increíblemente simple. Felsenstein (1985) simplemente señaló que si bien los datos de las especies per se no son independientes (debido a la historia compartida debido a la filogenia), las diferencias (o contrastes) entre las especies sí lo son. Del mismo modo, las diferencias (si se corrigen adecuadamente) entre los valores de los rasgos que se han interpolado para los nodos internos también son independientes. Por lo tanto, para un árbol de especies de N-taxones bifurcado que consta de observaciones de dos o más rasgos continuos, se puede calcular un total de N - 1 contrastes filogenéticamente independientes para cada rasgo. Estos contrastes, una vez normalizados, pueden usarse en regresión estándar o análisis de correlación.
+
+Para ver cómo utilizar el método de contrastes para ajustar un modelo lineal (como un modelo de regresión) en R, primero necesitaremos revisar algunos conceptos básicos sobre cómo ajustar modelos lineales en el entorno informático de R. Podemos comenzar cargando algunos datos sobre el tamaño corporal y el tamaño del área de distribución en varias especies de mamíferos (Garland et al. 1992). Aquí usaremos dos archivos, mamíferoHR.phy y mamíferoHR.csv (disponibles en el proyecto de R).
+
+```{r}
+mammalHR<-read.csv("mammalHR.csv",row.names=1)
+
+head(mammalHR)
+
+```
+
+
+Podemos ver en esta impresión que nuestro marco de datos, mamíferoHR, contiene dos columnas: bodyMass (que proporciona la masa corporal en kilogramos [kg] de cada especie en el conjunto de datos) y homeRange (el tamaño del área de distribución). Los nombres de las filas de nuestro objeto corresponden a los nombres de las especies de cada par de valores. A continuación, podemos seguir adelante y ajustar un modelo en el que el tamaño medio del rango (en km 2 ) varía en función del tamaño corporal total (en kg). Estos caracteres parecen estar correlacionados.
+
+```{r}
+
+## set margins of the plot
+par(mar=c(5.1,5.1,1.1,1.1))
+## create scatterplot
+plot(homeRange~bodyMass,data=mammalHR,xlab="body mass (kg)",ylab=expression(paste("home range (km"^"2",")")),pch=21,bg="gray",cex=1.2,log="xy",las=1,cex.axis=0.7,cex.lab=0.9,bty="n")
+
+```
+
+Ahora ajustemos un modelo de regresión estándar usando mínimos cuadrados ordinarios (OLS) (Neter et al. 1996). 
+Primero ajustamos el modelo a nuestros datos usando una poderosa función llamada lm. Segungo comprobamos la hipótesis. Dada la distribución de nuestras variables, y como es muy común con los datos biológicos, vamos a ajustar nuestro modelo al logaritmo natural del tamaño corporal y al logaritmo natural del tamaño del área de distribución del hogar de la siguiente manera. Esto es muy importante para variables numéricas (como estas) que varían en órdenes de magnitud. La transformación a una escala logarítmica hará que un cambio evolutivo del 10 por ciento en un oso o un ratón sean equivalentes (Glazier 2013). Esto lo haremos con la función log().
+
+```{r}
+fit.ols<-lm(log(homeRange)~log(bodyMass),data=mammalHR)
+fit.ols
+summary(fit.ols)
+```
+
+Para un objeto de lm, el resumen nos da valores P para el modelo y nuestros coeficientes ajustados, r2, F, y muchas de las otras estadísticas que podríamos obtener usando software estadístico estándar para realizar el mismo tipo de análisis. 
+R también facilita la representación gráfica del modelo.
+
+
+```{r}
+## set margins and graph scatterplot
+par(mar=c(5.1,5.1,1.1,1.1))
+plot(homeRange~bodyMass,data=mammalHR,xlab="body mass (kg)",ylab=expression(paste("home range (km"^"2",")")),pch=21,bg="gray",cex=1.2,log="xy",las=1,cex.axis=0.7,cex.lab=0.9,bty="n")
+## add the line of best fit from lm
+lines(mammalHR$bodyMass,exp(predict(fit.ols)),lwd=2,col="darkgray")
+
+```
+
+Hemos ajustado un modelo a nuestros datos en el que permitimos que el tamaño del área de distribución variara en función del tamaño corporal en una muestra de especies de mamíferos. Descubrimos que, de hecho, covarían, lo que nos hace rechazar la hipótesis nula de que los dos rasgos son independientes.
+
+Un supuesto clave del análisis de regresión lineal es que el error residual en el modelo está distribuido de manera independiente e idéntica. Felsenstein (1985) nos recordó que los datos filogenéticos tenderán a violar este supuesto porque las especies estrechamente relacionadas son muy a menudo más similares fenotípicamente que las distantes. Felsenstein (1985) también nos dio el método PIC para tomar en cuenta esta no independencia calculando contrastes filogenéticamente independientes (nuestros PIC) y luego sustituyéndolos por nuestros datos originales en la regresión lineal.
+
+Para ello, debemos empezar cargando nuestro árbol filogenético desde un archivo. Este árbol está nuevamente tomado de Garland et al. (1992)
+Luego respresntamos nuestro árbol.
+
+```{r}
+mammal.tree<-read.tree("mammalHR.phy")
+## plot phylogeny of mammals
+plotTree(mammal.tree,ftype="i",fsize=0.7,lwd=1)
+## add node labels to the plotted tree
+nodelabels(bg="white",cex=0.5,frame="circle")
+```
+
+La función para calcular contrastes es del paquete ape y se llama pic. Sigamos adelante y calculemos los contrastes para el área de distribución y el tamaño del cuerpo. Haremos esto en dos pasos. Primero, extraeremos vectores separados para cada carácter y asignaremos los nombres de los vectores que corresponden a los nombres de datos mamíferoHR usando la función setNames. A continuación, procederemos a calcular los contrastes para cada uno de estos nuevos vectores con nombre usando la función PIC del paquete APE.
+
+```{r}
+## pull our home range and body mass as
+## numeric vectors
+homeRange<-setNames(mammalHR[,"homeRange"],rownames(mammalHR))
+bodyMass<-setNames(mammalHR[,"bodyMass"],rownames(mammalHR))
+## compute PICs for home range and body size
+pic.homerange<-pic(log(homeRange),mammal.tree)
+pic.bodymass<-pic(log(bodyMass),mammal.tree)
+
+head(pic.homerange,n=20)
+head(pic.bodymass,n=20)
+
+```
+
+Podemos ver inmediatamente que los contrastes toman valores tanto positivos como negativos. Esto tiene sentido, porque los contrastes son diferencias (estandarizadas) en los valores de los rasgos entre especies o nodos hermanos. Obviamente, estas diferencias pueden ser positivas si, por ejemplo, el nodo hijo derecho tiene un valor más alto para el rasgo que el nodo hijo izquierdo, o negativas si ocurre lo contrario. Además, si comparamos cualquiera de nuestros vectores PIC con el árbol, también deberíamos ver que nuestro vector tiene nombres que corresponden a los índices de nodos del árbol. Esto también tiene sentido, porque en un árbol que se bifurca, cada contraste subtiende un solo nodo.
+
+Ahora estamos listos para ajustar nuestro modelo lineal. Sin embargo, debemos tener en cuenta que tendremos que ajustar este modelo de regresión hasta cero, es decir, sin un término de intersección. Esto se debe a que, para cualquier nodo de la filogenia, la rotación de las hijas derecha e izquierda de ese nodo es arbitraria y, como tal, también lo es la dirección de resta de los contrastes. Nuestro modelo lineal para esos contrastes debería pasar por el punto (0,0) en nuestro gráfico (Felsenstein, 1985). Para hacer eso en R, podemos anexar +0 o -1 a nuestra fórmula en lm. Usemos +0.
+
+```{r}
+## fit linear model to PICs without intercept
+fit.pic<-lm(pic.homerange~pic.bodymass+0)
+fit.pic
+summary(fit.pic)
+
+```
+
+El resultado es muy similar al resultado resumido de nuestra regresión ordinaria, siendo la diferencia más significativa que este modelo tiene un solo coeficiente ajustado: la pendiente. 5Esto tiene sentido ya que fijamos el término de intersección del modelo en cero. Finalmente, representemos contrastes independientes y nuestra pendiente ajustada
+
+```{r}
+## set margins
+par(mar=c(5.1,5.1,1.1,1.1))
+## graph scatterplot of contrasts
+plot(pic.homerange~pic.bodymass,xlab="PICs for log(body mass)",ylab="PICs for log(range size)",pch=21,bg="gray",cex=1.2,las=1,cex.axis=0.7,cex.lab=0.9,bty="n")
+## add gridlines to the plot
+abline(h=0,lty="dotted")
+abline(v=0,lty="dotted")
+## reset graphing limits of the plot to the## x/y range of our PICs
+clip(min(pic.bodymass),max(pic.bodymass),min(pic.homerange),max(pic.homerange))
+## graph our fitted line
+abline(fit.pic,lwd=2,col="darkgray")
+
+```
+
+El resultado es muy similar al resultado resumido de nuestra regresión ordinaria, siendo la diferencia más significativa que este modelo tiene un solo coeficiente ajustado: la pendiente. Esto tiene sentido ya que fijamos el término de intersección del modelo en cero.
+Sin embargo, es bastante sencillo imaginar (y casi igual de fácil simular) circunstancias bastante realistas en las que tener en cuenta la filogenia al ajustar un modelo de regresión puede ser mucho más importante.
+
+A continuación vamos a simular un árbol filogenético. Para hacerlo, usaremos un modelo estocástico llamado modelo birth-death (nacimiento-muerte) (Nee 2006). El modelo de birth-death es simplemente un proceso estocástico para generar filogenias con especiación aleatoria constante (births) y extinción aleatoria constante (deaths). Queremos simular nuestro árbol con una alta tasa de extinción, por lo que combinaremos nuestra llamada de función con un bucle diseñado para repetir nuestra simulación hasta que obtengamos una filogenia que no se extinga por completo. Al hacerlo, lo que esperamos obtener es un árbol filogenético estocástico que fue simulado bajo una tasa de extinción relativamente alta en comparación con la tasa de especiación.
+
+```{r}
+set.seed(1001)
+
+## set starting tree to NULL
+tree<-NULL
+## repeat simulation until non-NULL (i.e., non-## extinct) tree is obtained
+while(is.null(tree))
+  tree<-pbtree(n=100,b=1,d=0.8,extant.only=TRUE)
+## plot the simulated tree
+plotTree(tree,ftype="off",color="darkgray",lwd=1)
+
+```
+
+A continuación, simulemos la evolución en este árbol para dos variables, x e y. Tenga en cuenta que vamos a simular los dos caracteres de forma completamente independiente: primero uno y luego el otro, es decir, sin ninguna correlación evolutiva real entre ellos. Después de simular nuestros datos, podemos trazarlos, ajustar un modelo de regresión y graficar ese modelo ajustado sin puntos. En este bloque de código, la función fastBM de phytools se usa para simular la evolución de caracteres independientes para x e y.
+
+```{r}
+x<-fastBM(tree)
+y<-fastBM(tree)
+```
+
+A continuación, crearemos un diagrama de dispersión de nuestras dos variables simuladas y luego ajustaremos una regresión de mínimos cuadrados ordinaria usando la función lm (ignorando la filogenia). Podemos agregar una línea que muestre esta regresión ajustada a nuestro gráfico usando la función abline.
+
+```{r}
+## set figure margins
+par(mar=c(5.1,4.1,1.1,1.1))
+## create scatterplot of x & y
+plot(x,y,cex=1.2,pch=21,bg="gray",las=1,cex.axis=0.7,cex.lab=0.9,bty="n")
+## add grid lines to the plot
+grid()
+## abbreviate the plotting area to match
+## the range of our variables
+clip(min(x),max(x),min(y),max(y))
+## fit our linear model using OLS
+fit.ols<-lm(y~x)
+## add our fitted regression line to the plot
+abline(fit.ols,lwd=2,col="darkgray")
+
+fit.ols
+summary(fit.ols)
+
+```
+
+El r2 de nuestro modelo lineal no es muy alto (sólo alrededor de 0,5), pero la correlación resulta, no obstante, muy significativa. Esto debería ser un poco sorprendente porque, recuerde, estos datos se simularon en ausencia de una correlación evolutiva entre las dos variables. Lo que debemos deducir de este ejemplo es que no es difícil para la filogenia inducir lo que podría caracterizarse como un error de tipo I. Una forma de entender cómo ocurre esto es que en nuestros datos hay grupos de errores estrechamente relacionados (y por lo tanto, estadísticamente no independientes) que tienen fenotipos muy similares, tanto para x como para y, aunque x e y son evolutivamente independientes: es decir, la evolución de x no tuvo ningún efecto sobre la evolución de y o viceversa. Esto se puede visualizar hasta cierto punto usando el método de trazado (filomorfoespacio).
+
+```{r}
+## set plotting margins
+par(mar=c(5.1,5.1,1.1,1.1),cex.axis=0.7,cex.lab=0.9)
+## graph phylomorphospace projection
+phylomorphospace(tree,cbind(x,y),label="off",node.size=c(0,0),bty="n",las=1)
+## overlay points onto the phylomorphospace plot
+points(x,y,pch=21,bg="gray",cex=1.2)
+## add gridlines
+grid()
+## clip plot
+clip(min(x),max(x),min(y),max(y))
+## add fitted regression line
+abline(fit.ols,lwd=2)
+
+```
+
+Al inspeccionar esta proyección, podríamos empezar a notar que entre especies estrechamente relacionadas, parece haber muy poca correlación entre las dos variables del modelo, lo que sugiere que la aparente correlación podría deberse (como la describe Felsenstein 1985) a las divergencias aleatorias entre un número relativamente pequeño de nodos en el árbol. Ahora veamos si al sustituir los contrastes entre especies (y nodos) por los valores originales en nuestra regresión, resolvemos este error de tipo I. Trazaremos nuestros contrastes y la línea de regresión ajustada.
+
+```{r}
+## compute PICs for x and y
+ix<-pic(x,tree)
+iy<-pic(y,tree)
+## fit PIC regression through the origin
+fit.pic<-lm(iy~ix+0)
+fit.pic
+
+## set plotting margins
+par(mar=c(5.1,4.1,1.1,1.1))
+## graph scatterplot of PICs
+plot(ix,iy,cex=1.2,pch=21,bg="gray",las=1,xlab="PICs for x",ylab="PICs for y",cex.axis=0.7,cex.lab=0.9,bty="n")
+## add gridlines to plot
+grid()
+## clip plotting area
+clip(min(ix),max(ix),min(iy),max(iy))
+## add fitted regression line
+abline(fit.pic,lwd=2,col="darkgray")
+
+summary(fit.pic)
+
+```
+
+Recuerde, este definitivamente no es un ejemplo de una relación “real” que haya sido eliminada con contrastes. Por el contrario, en este caso, sabemos sin lugar a dudas que nuestros datos evolucionaron sin una relación evolutiva genuina entre x e y, ¡porque los hicimos de esa manera! La correlación altamente significativa que medimos en el análisis de regresión ordinaria es incorrecta. Una forma útil de pensar en lo que encontramos es que x e y parecen estar correlacionados pero no evolutivamente correlacionados. Es decir, el resultado del OLS nos dice que podemos usar x para predecir y, pero sólo porque (al conocer su valor para x) sabemos algo sobre dónde ocurre esa especie en el árbol, y por lo tanto podemos predecir algo sobre y. Por otro lado, la regresión lineal no significativa de los contrastes nos dice que no encontramos evidencia de una tendencia evolutiva para que x e y coevolucionen
+
+###############
+ACTIVIDADES PROPUESTAS
+
+En este proyecto de R, proporcionamos algunos datos de un grupo de barbudos asiáticos (BarbetTree.nex y Barbetdata.csv): miembros de la familia de aves Megalaimidae (Gonzalez-Voyer et al. 2013). Utilizando estos datos y el método de contrastes filogenéticos independientes, pruebe la relación entre las dos variables Lnalt y wing. ¿Qué encuentras? ¿Cómo cambia la pendiente si ajustas Wing vs. Lnalt en vez de Lnalt vs. wing? ¿Cómo se comporta el valor P?
+
+```{r}
+##Add here your codes
+
+
+
+```
+
+
+Repita el análisis de simulación de error tipo I, en la última sección del capítulo, pero usando un modelo de diversificación de tipo “pure-birth” (es decir, árboles simulados usando pbtree pero con la tasa de extinción, d, establecida en 0) ¿Cómo afecta a tus resultados este cambio en la forma en que se simulan tus filogenias? En particular, ¿hace que la tasa de error tipo I que resulta de ignorar la filogenia aumente o disminuya? ¿Puedes explicar las diferencias que observas?
+
+
+```{r}
+##Add here your codes
+
+
+
+```
+
+
