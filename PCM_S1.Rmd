@@ -9,7 +9,7 @@ editor_options:
   chunk_output_type: console
 ---
 
-MÉTODO FILOGENÉTICOS COMPARATIVOS: MÉTODO DE CONTRASTES INDEPENDIENTES
+MÉTODO FILOGENÉTICOS COMPARATIVOS
 
 El campo moderno de los métodos filogneéticos comparativos nació con el método de contrastes independientes (Indepependent Contrast), gracias a un artículo revolucionario publicado a mediados de la década de 1980 por Joseph Felsenstein (1985). En este artículo del naturalista estadounidense, titulado “Phylogenies and the Comparative Method, Felsenstein (1985)" se cambió de forma fundamental e irreversiblemente la forma en que el campo de la biología comparada veía colectivamente el análisis de los datos de las especies. Lo hizo en gran parte ilustrando por qué los puntos de datos obtenidos de especies relacionadas entre sí por una filogenia no podían ni debían ser tratados como independientes desde el punto de vista del análisis estadístico tradicional.
 En particular, Felsenstein (1985) mostró el peor escenario posible para ilustrar cómo la falta de independencia filogenética de las especies podría llevar a un enorme exceso de confianza en la inferencia de una correlación evolutiva entre rasgos, si esta correlación se estimara sin tomar adecuadamente en consideración la filogenia. 
@@ -50,6 +50,9 @@ mtext("(b)",line=1,adj=0,cex=1.5)
 Aquí (siguiendo a Felsenstein 1985), lo que vemos son dos clados de igual tamaño (A y B), cada uno de los cuales consta de taxones estrechamente relacionados entre sí pero separados por una gran distancia de la raíz. Cuando simulamos datos de forma independiente para x e y, a primera vista, estos datos parecen estar correlacionados. Sin embargo, una inspección más cercana revela que la aparente correlación surge enteramente de una divergencia aleatoria tanto en x como en y a lo largo de las largas ramas que separan las dos clases.
 
 Los valores dentro de cada clado no muestran evidencia de la correlación que uno podría esperar ver si x e y tendieran consistentemente a coevolucionar a lo largo del tiempo evolutivo. Antes de la contribución fundamental de Felsenstein (1985), no habría sido raro interpretar una correlación simple entre dos variables como evidencia de que habían coevolucionado. Lo que el artículo de Felsenstein sirvió para ilustrar fue que tal patrón puede surgir fácilmente en los datos filogenéticos incluso en ausencia de una relación evolutiva genuina entre los rasgos. Sin embargo, el artículo de Felsenstein (1985) fue mucho más que una crítica del paradigma existente. También presentó una solución para el análisis de correlación o regresión de datos de especies. Este fue un tipo específico de transformación de datos que se conoce como contrastes filogenéticamente independientes o PIC. Este método proporciona una manera de probar las correlaciones evolutivas entre especies, como ilustraremos
+
+
+MÉTODO DE CONTRASTES INDEPENDIENTES
 
 El principio detrás del método de Felsenstein es notablemente elegante e increíblemente simple. Felsenstein (1985) simplemente señaló que si bien los datos de las especies per se no son independientes (debido a la historia compartida debido a la filogenia), las diferencias (o contrastes) entre las especies sí lo son. Del mismo modo, las diferencias (si se corrigen adecuadamente) entre los valores de los rasgos que se han interpolado para los nodos internos también son independientes. Por lo tanto, para un árbol de especies de N-taxones bifurcado que consta de observaciones de dos o más rasgos continuos, se puede calcular un total de N - 1 contrastes filogenéticamente independientes para cada rasgo. Estos contrastes, una vez normalizados, pueden usarse en regresión estándar o análisis de correlación.
 
@@ -159,6 +162,11 @@ abline(fit.pic,lwd=2,col="darkgray")
 
 El resultado es muy similar al resultado resumido de nuestra regresión ordinaria, siendo la diferencia más significativa que este modelo tiene un solo coeficiente ajustado: la pendiente. Esto tiene sentido ya que fijamos el término de intersección del modelo en cero.
 Sin embargo, es bastante sencillo imaginar (y casi igual de fácil simular) circunstancias bastante realistas en las que tener en cuenta la filogenia al ajustar un modelo de regresión puede ser mucho más importante.
+
+
+QUE PASA SI IGNORAMOS LA INFORMACIÓN FILOGENÉTICA
+
+Pues lo vamos a visualizar simulando unos datos.
 
 A continuación vamos a simular un árbol filogenético. Para hacerlo, usaremos un modelo estocástico llamado modelo birth-death (nacimiento-muerte) (Nee 2006). El modelo de birth-death es simplemente un proceso estocástico para generar filogenias con especiación aleatoria constante (births) y extinción aleatoria constante (deaths). Queremos simular nuestro árbol con una alta tasa de extinción, por lo que combinaremos nuestra llamada de función con un bucle diseñado para repetir nuestra simulación hasta que obtengamos una filogenia que no se extinga por completo. Al hacerlo, lo que esperamos obtener es un árbol filogenético estocástico que fue simulado bajo una tasa de extinción relativamente alta en comparación con la tasa de especiación.
 
