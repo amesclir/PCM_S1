@@ -12,7 +12,7 @@ plotTree(Barbet.tree,ftype="i",fsize=0.7,lwd=1)
 ## add node labels to the plotted tree
 nodelabels(bg="white",cex=0.5,frame="circle")
 
-libary(geiger)
+library(geiger)
 chk <- name.check(Barbet.tree, Barbetdata)
 chk
 Barbet.tree <- drop.tip(Barbet.tree,chk$tree_not_data)
