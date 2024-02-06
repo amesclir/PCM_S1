@@ -1,3 +1,5 @@
+library(phytools)
+library(geiger)
 Barbetdata<-read.csv("Barbetdata.csv",row.names=1)
 head(Barbetdata)
 
