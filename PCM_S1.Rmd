@@ -11,7 +11,7 @@ editor_options:
 
 MÉTODOS FILOGENÉTICOS COMPARATIVOS
 
-El campo moderno de los métodos filogenéticos comparativos nació con el método de contrastes independientes (Independent Contrast), gracias a un artículo revolucionario publicado a mediados de la década de 1980 por Joseph Felsenstein (1985). En este artículo del naturalista estadounidense, titulado “Phylogenies and the Comparative Method, Felsenstein (1985)" se cambió de forma fundamental e irreversiblemente la forma en que el campo de la biología comparada veía colectivamente el análisis de los datos de las especies. Lo hizo en gran parte ilustrando por qué los puntos de datos obtenidos de especies relacionadas entre sí por una filogenia no podían ni debían ser tratados como independientes desde el punto de vista del análisis estadístico tradicional.
+El campo moderno de los métodos filogenéticos comparativos nació con el método de contrastes independientes (Independent Contrast), gracias a un artículo revolucionario publicado a mediados de la década de los 80 por Joseph Felsenstein (1985). En este artículo del naturalista estadounidense, titulado “Phylogenies and the Comparative Method, Felsenstein (1985)" se cambió de forma fundamental e irreversiblemente la forma en que el campo de la biología comparada veía colectivamente el análisis de los datos de las especies. Lo hizo en gran parte ilustrando por qué los puntos de datos obtenidos de especies relacionadas entre sí por una filogenia no podían ni debían ser tratados como independientes desde el punto de vista del análisis estadístico tradicional.
 En particular, Felsenstein (1985) mostró el peor escenario posible para ilustrar cómo la falta de independencia filogenética de las especies podría llevar a un enorme exceso de confianza en la inferencia de una correlación evolutiva entre rasgos, si esta correlación se estimara sin tomar adecuadamente en consideración la filogenia. 
 El siguiente código ilustra el denominado como "peor escenario posible".
 
@@ -78,7 +78,7 @@ plot(homeRange~bodyMass,data=mammalHR,xlab="body mass (kg)",ylab=expression(past
 ```
 
 Ahora ajustemos un modelo de regresión estándar usando mínimos cuadrados "ordinarios" (ordinary least squares o OLS) (Neter et al. 1996). 
-Primero ajustamos el modelo a nuestros datos usando una poderosa función llamada lm. Segungo comprobamos la hipótesis. Dada la distribución de nuestras variables, y como es muy común con los datos biológicos, vamos a ajustar nuestro modelo al logaritmo natural del tamaño corporal y al logaritmo natural del tamaño del área de campeo. Esto es muy importante para variables numéricas (como estas) que varían en órdenes de magnitud. La transformación a una escala logarítmica hará que un cambio evolutivo del 10 por ciento en un oso o un ratón sean equivalentes (Glazier 2013). Esto lo haremos con la función log().
+Primero ajustamos el modelo a nuestros datos usando una poderosa función llamada lm. Segundo comprobamos la hipótesis. Dada la distribución de nuestras variables, y como es muy común con los datos biológicos, vamos a ajustar nuestro modelo al logaritmo natural del tamaño corporal y al logaritmo natural del tamaño del área de campeo. Esto es muy importante para variables numéricas (como estas) que varían en órdenes de magnitud. La transformación a una escala logarítmica hará que un cambio evolutivo del 10 por ciento en un oso o un ratón sean equivalentes (Glazier 2013). Esto lo haremos con la función log().
 
 ```{r}
 fit.ols<-lm(log(homeRange)~log(bodyMass),data=mammalHR)
@@ -283,14 +283,14 @@ Repita el análisis de simulación de error tipo I, en la última sección del c
 ```
 
 
-REFERENCIAS BÁSICAS
+REFERENCIAS BÁSICAS TEÓRICAS
 
 Felsenstein, J. (1985). Phylogenies and the comparative method. The American Naturalist, 125(1), 1-15.
 
 Garland Jr, T., Harvey, P. H., & Ives, A. R. (1992). Procedures for the analysis of comparative data using phylogenetically independent contrasts. Systematic biology, 41(1), 18-32.
 
 
-REFERENCIAS COMPLEMENTARIAS
+REFERENCIAS TEÓRICAS COMPLEMENTARIAS
 
 Glazier, D. S. (2013). Log-transformation is useful for examining proportional relationships in allometric scaling. Journal of theoretical biology, 334, 200-203.
 
